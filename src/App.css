@@ -1,0 +1,244 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  line-height: 1.6;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+.header {
+  background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
+  padding: 2rem;
+  text-align: center;
+  border-bottom: 1px solid #333;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  color: #888;
+  font-size: 1.1rem;
+}
+
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.trip-form {
+  background: #16213e;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.trip-form h2 {
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #1a1a2e;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #4ade80;
+}
+
+.coord-inputs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+.plan-btn {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.plan-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+}
+
+.plan-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #ef4444;
+  margin-top: 1rem;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.trip-summary {
+  background: #16213e;
+  padding: 2rem;
+  border-radius: 12px;
+}
+
+.trip-summary h2 {
+  margin-bottom: 1rem;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: #1a1a2e;
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+.stat-label {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.segments h2, .all-campsites h2 {
+  margin-bottom: 1rem;
+}
+
+.segment-card {
+  background: #16213e;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.segment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #333;
+}
+
+.segment-header h3 {
+  color: #4ade80;
+}
+
+.segment-header span {
+  color: #888;
+}
+
+.campsite-suggestion {
+  background: #1a1a2e;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 3px solid #4ade80;
+}
+
+.campsite-suggestion h4 {
+  margin-bottom: 0.75rem;
+}
+
+.campsite-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tag {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  background: #333;
+  color: #fff;
+}
+
+.tag.gx460 {
+  background: #16a34a;
+}
+
+.amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.amenity {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  background: #333;
+  border-radius: 4px;
+  color
+  /* Map Styles */
+.map-section {
+  margin-bottom: 2rem;
+}
+
+.map-container {
+  height: 400px;
+  width: 100%;
+  border-radius: 12px;
+  z-index: 1;
+}
