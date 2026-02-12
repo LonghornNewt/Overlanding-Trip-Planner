@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import './App.css';
 import TripMap from './components/TripMap';
 
 const API_BASE = 'https://improved-waddle-jj7xg7wqgvvvc54pq-8000.app.github.dev';
+
+// Nominatim geocoding - free, open, no API key needed
+const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 
 function App() {
   const [startLat, setStartLat] = useState('30.27');
@@ -22,78 +25,73 @@ function App() {
   const [searchingStart, setSearchingStart] = useState(false);
   const [searchingDest, setSearchingDest] = useState(false);
 
-  // Built-in city database for offline geocoding
-  const cityDatabase = [
-    { name: "Austin, TX", lat: 30.27, lon: -97.74 },
-    { name: "Denver, CO", lat: 39.74, lon: -104.99 },
-    { name: "Moab, UT", lat: 38.57, lon: -109.55 },
-    { name: "Big Bend National Park, TX", lat: 29.25, lon: -103.25 },
-    { name: "Sedona, AZ", lat: 34.87, lon: -111.76 },
-    { name: "Flagstaff, AZ", lat: 35.20, lon: -111.65 },
-    { name: "Santa Fe, NM", lat: 35.69, lon: -105.94 },
-    { name: "Albuquerque, NM", lat: 35.08, lon: -106.65 },
-    { name: "Phoenix, AZ", lat: 33.45, lon: -112.07 },
-    { name: "Tucson, AZ", lat: 32.22, lon: -110.93 },
-    { name: "Las Vegas, NV", lat: 36.17, lon: -115.14 },
-    { name: "Salt Lake City, UT", lat: 40.76, lon: -111.89 },
-    { name: "Colorado Springs, CO", lat: 38.83, lon: -104.82 },
-    { name: "Durango, CO", lat: 37.28, lon: -107.88 },
-    { name: "Taos, NM", lat: 36.41, lon: -105.57 },
-    { name: "Carlsbad, NM", lat: 32.42, lon: -104.23 },
-    { name: "El Paso, TX", lat: 31.76, lon: -106.49 },
-    { name: "Houston, TX", lat: 29.76, lon: -95.37 },
-    { name: "Dallas, TX", lat: 32.78, lon: -96.80 },
-    { name: "San Antonio, TX", lat: 29.42, lon: -98.49 },
-    { name: "Fort Worth, TX", lat: 32.75, lon: -97.33 },
-    { name: "Oklahoma City, OK", lat: 35.47, lon: -97.52 },
-    { name: "Kansas City, MO", lat: 39.10, lon: -94.58 },
-    { name: "Amarillo, TX", lat: 35.22, lon: -101.83 },
-    { name: "Lubbock, TX", lat: 33.58, lon: -101.85 },
-    { name: "Midland, TX", lat: 31.99, lon: -102.08 },
-    { name: "Marfa, TX", lat: 30.31, lon: -104.02 },
-    { name: "Terlingua, TX", lat: 29.32, lon: -103.61 },
-    { name: "Joshua Tree, CA", lat: 34.13, lon: -116.31 },
-    { name: "Death Valley, CA", lat: 36.51, lon: -117.08 },
-    { name: "Grand Canyon, AZ", lat: 36.05, lon: -112.14 },
-    { name: "Zion National Park, UT", lat: 37.30, lon: -113.03 },
-    { name: "Bryce Canyon, UT", lat: 37.59, lon: -112.19 },
-    { name: "Arches National Park, UT", lat: 38.73, lon: -109.59 },
-    { name: "Canyonlands, UT", lat: 38.33, lon: -109.88 },
-    { name: "Mesa Verde, CO", lat: 37.18, lon: -108.49 },
-    { name: "Black Canyon, CO", lat: 38.58, lon: -107.72 },
-    { name: "Great Sand Dunes, CO", lat: 37.73, lon: -105.51 },
-    { name: "Rocky Mountain National Park, CO", lat: 40.34, lon: -105.68 },
-    { name: "Yellowstone, WY", lat: 44.43, lon: -110.59 },
-    { name: "Jackson Hole, WY", lat: 43.48, lon: -110.76 },
-  ];
+  // Debounce refs
+  const startTimerRef = useRef(null);
+  const destTimerRef = useRef(null);
 
-  const geocodeCity = async (query, setSuggestions, setSearching) => {
-    if (query.length < 2) {
+  // Build a readable short name from Nominatim address details
+  const buildShortName = (result) => {
+    const addr = result.address || {};
+    const city = addr.city || addr.town || addr.village || addr.hamlet || addr.county || '';
+    const state = addr.state || '';
+    const country = addr.country_code ? addr.country_code.toUpperCase() : '';
+    if (city && state) return city + ', ' + state;
+    if (city && country) return city + ', ' + country;
+    const parts = result.display_name.split(',').map(s => s.trim());
+    return parts.slice(0, 2).join(', ');
+  };
+
+  // Geocode using Nominatim API - searches anywhere in the world
+  const geocodeCity = useCallback(async (query, setSuggestions, setSearching, timerRef) => {
+    if (query.length < 3) {
       setSuggestions([]);
       return;
     }
-    setSearching(true);
-    
-    // Search local database
-    const matches = cityDatabase.filter(city => 
-      city.name.toLowerCase().includes(query.toLowerCase())
-    ).slice(0, 5);
-    
-    setSuggestions(matches);
-    setSearching(false);
-  };
+
+    // Clear previous timer
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    // Debounce 400ms to respect Nominatim usage policy (max 1 req/sec)
+    timerRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const params = new URLSearchParams({
+          q: query,
+          format: 'json',
+          limit: '8',
+          addressdetails: '1',
+        });
+        const res = await fetch(NOMINATIM_URL + '?' + params.toString(), {
+          headers: { 'User-Agent': 'OverlandingTripPlanner/1.0' }
+        });
+        const data = await res.json();
+        const suggestions = data.map(r => ({
+          name: r.display_name,
+          lat: parseFloat(r.lat),
+          lon: parseFloat(r.lon),
+          shortName: buildShortName(r),
+        }));
+        setSuggestions(suggestions);
+      } catch (err) {
+        console.error('Geocoding error:', err);
+        setSuggestions([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+  }, []);
 
   const selectStartLocation = (suggestion) => {
     setStartLat(suggestion.lat.toString());
     setStartLon(suggestion.lon.toString());
-    setStartCity(suggestion.name.split(',').slice(0, 2).join(','));
+    setStartCity(suggestion.shortName || suggestion.name);
     setStartSuggestions([]);
   };
 
   const selectDestLocation = (suggestion) => {
     setDestLat(suggestion.lat.toString());
     setDestLon(suggestion.lon.toString());
-    setDestCity(suggestion.name.split(',').slice(0, 2).join(','));
+    setDestCity(suggestion.shortName || suggestion.name);
     setDestSuggestions([]);
   };
 
@@ -101,6 +99,7 @@ function App() {
     setLoading(true);
     setError(null);
     setSelectedCampsite(null);
+
     try {
       const response = await fetch(`${API_BASE}/api/trip/plan`, {
         method: 'POST',
@@ -112,6 +111,7 @@ function App() {
           daily_drive_hours: parseFloat(dailyHours),
         }),
       });
+
       if (!response.ok) throw new Error('Failed to plan trip');
       const data = await response.json();
       setTripPlan(data);
@@ -134,7 +134,6 @@ function App() {
 
   const handleCampsiteSelect = (site) => {
     setSelectedCampsite(site);
-    // Scroll to campsite details if on mobile
     const detailsSection = document.getElementById('campsite-details');
     if (detailsSection) {
       detailsSection.scrollIntoView({ behavior: 'smooth' });
@@ -176,13 +175,13 @@ function App() {
             <div className="form-group">
               <label>Start Location</label>
               <div className="city-search">
-                <input 
-                  type="text" 
-                  placeholder="Search city..." 
+                <input
+                  type="text"
+                  placeholder="Search any city or place..."
                   value={startCity}
                   onChange={(e) => {
                     setStartCity(e.target.value);
-                    geocodeCity(e.target.value, setStartSuggestions, setSearchingStart);
+                    geocodeCity(e.target.value, setStartSuggestions, setSearchingStart, startTimerRef);
                   }}
                 />
                 {searchingStart && <span className="searching">Searching...</span>}
@@ -190,7 +189,8 @@ function App() {
                   <ul className="suggestions">
                     {startSuggestions.map((s, i) => (
                       <li key={i} onClick={() => selectStartLocation(s)}>
-                        {s.name}
+                        <strong>{s.shortName}</strong>
+                        <span className="suggestion-full">{s.name}</span>
                       </li>
                     ))}
                   </ul>
@@ -198,16 +198,17 @@ function App() {
               </div>
               <span className="hint">📍 {startLat}, {startLon}</span>
             </div>
+
             <div className="form-group">
               <label>Destination</label>
               <div className="city-search">
-                <input 
-                  type="text" 
-                  placeholder="Search city..." 
+                <input
+                  type="text"
+                  placeholder="Search any city or place..."
                   value={destCity}
                   onChange={(e) => {
                     setDestCity(e.target.value);
-                    geocodeCity(e.target.value, setDestSuggestions, setSearchingDest);
+                    geocodeCity(e.target.value, setDestSuggestions, setSearchingDest, destTimerRef);
                   }}
                 />
                 {searchingDest && <span className="searching">Searching...</span>}
@@ -215,7 +216,8 @@ function App() {
                   <ul className="suggestions">
                     {destSuggestions.map((s, i) => (
                       <li key={i} onClick={() => selectDestLocation(s)}>
-                        {s.name}
+                        <strong>{s.shortName}</strong>
+                        <span className="suggestion-full">{s.name}</span>
                       </li>
                     ))}
                   </ul>
@@ -223,6 +225,7 @@ function App() {
               </div>
               <span className="hint">📍 {destLat}, {destLon}</span>
             </div>
+
             <div className="form-group">
               <label>Max Detour (miles)</label>
               <input type="number" value={maxDetour} onChange={(e) => setMaxDetour(e.target.value)} />
@@ -232,9 +235,11 @@ function App() {
               <input type="number" value={dailyHours} onChange={(e) => setDailyHours(e.target.value)} />
             </div>
           </div>
+
           <button className="plan-btn" onClick={planTrip} disabled={loading}>
             {loading ? 'Planning...' : '🗺️ Plan Trip'}
           </button>
+
           {error && <p className="error">{error}</p>}
         </section>
 
@@ -371,7 +376,7 @@ function App() {
                     </span>
                   </div>
                   {segment.suggested_campsite ? (
-                    <div 
+                    <div
                       className={`campsite-suggestion ${selectedCampsite?.id === segment.suggested_campsite.id ? 'selected' : ''}`}
                       onClick={() => handleCampsiteSelect(segment.suggested_campsite)}
                     >
@@ -414,8 +419,8 @@ function App() {
               <p className="campsite-hint">Click a marker on the map or a card below for details</p>
               <div className="campsite-grid">
                 {tripPlan.nearby_campsites.map((site) => (
-                  <div 
-                    key={site.id} 
+                  <div
+                    key={site.id}
                     className={`campsite-card ${selectedCampsite?.id === site.id ? 'selected' : ''}`}
                     onClick={() => handleCampsiteSelect(site)}
                   >
