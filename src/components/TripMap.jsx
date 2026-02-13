@@ -156,6 +156,17 @@ function TripMap({
                 <p className="popup-gx460">✓ GX 460 Accessible</p>
               )}
               <p className="popup-source">Source: {site.source}</p>
+                              {site.description && (
+                                                  <p className="popup-description">{site.description}</p>
+                                                                  )}
+                                                                                  {site.reservation_url && (
+                                                                                                    <p className="popup-reservation">
+                                                                                                                        <a href={site.reservation_url} target="_blank" rel="noopener noreferrer">
+                                                                                                                                              🔗 Make Reservation
+                                                                                                                                                                  </a>
+                                                                                                                                                                                    </p>
+                                                                                                                                                                                                    )}
+                              )}
               {onCampsiteSelect && (
                 <button 
                   className="popup-select-btn"
